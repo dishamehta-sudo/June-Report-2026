@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>June 2026 · Agent Sales Report</title>
+<style>
+:root{
+  --ink:#1c2a2e;
+  --paper:#f7f5f0;
+  --panel:#ffffff;
+  --line:#e4e0d6;
+  --moss:#2f5d50;
+  --moss-dark:#1f4038;
+  --brass:#b8863b;
+  --brass-light:#e7c98a;
+  --clay:#a4472f;
+  --slate:#5c6b6a;
+  --good:#2f7d5a;
+  --bad:#b0432c;
+  --radius:10px;
+  --mono: 'IBM Plex Mono', 'SF Mono', Consolas, monospace;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Source Sans Pro','Segoe UI',Helvetica,Arial,sans-serif;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+@font-face{font-family:'sysfallback';}
+h1,h2,h3,h4{font-family:'Georgia','Iowan Old Style',serif; margin:0; letter-spacing:-0.01em;}
+.ledger-num{font-family:var(--mono); font-variant-numeric:tabular-nums;}
+
+/* ---------- layout shell ---------- */
+.wrap{max-width:1180px; margin:0 auto; padding:0 28px 80px;}
+header.masthead{
+  background:linear-gradient(160deg,var(--moss-dark) 0%, var(--moss) 60%, #33685a 100%);
+  color:#f3efe4;
+  padding:56px 0 44px;
+  border-bottom:6px solid var(--brass);
+}
+header.masthead .wrap{display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:24px;}
+.masthead-title .eyebrow{
+  text-transform:uppercase; letter-spacing:.18em; font-size:12px; color:var(--brass-light); font-family:var(--mono); margin-bottom:10px;
+}
+.masthead-title h1{font-size:44px; font-weight:400; color:#fbf8f0;}
+.masthead-title h1 em{font-style:italic; color:var(--brass-light);}
+.masthead-title .sub{margin-top:10px; color:#cfe0d8; font-size:15px; max-width:520px;}
+.masthead-kpis{display:flex; gap:0;}
+.mk{padding:0 22px; border-left:1px solid rgba(255,255,255,.18); text-align:right;}
+.mk:first-child{border-left:none;}
+.mk .v{font-family:var(--mono); font-size:26px; color:#fbf8f0; font-weight:600;}
+.mk .l{font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:#a9c2b8; margin-top:4px;}
+
+nav.toc{
+  background:var(--panel); border-bottom:1px solid var(--line);
+  position:sticky; top:0; z-index:50;
+  box-shadow:0 1px 0 rgba(0,0,0,.03);
+}
+nav.toc .wrap{display:flex; gap:2px; overflow-x:auto; padding:0 28px;}
+nav.toc a{
+  white-space:nowrap; font-size:13px; color:var(--slate); text-decoration:none;
+  padding:14px 14px; border-bottom:3px solid transparent; font-weight:600;
+}
+nav.toc a:hover{color:var(--moss); border-bottom-color:var(--brass-light);}
+
+section{padding:52px 0; border-bottom:1px solid var(--line);}
+section:last-of-type{border-bottom:none;}
+.section-head{display:flex; align-items:baseline; gap:14px; margin-bottom:6px;}
+.section-num{font-family:var(--mono); color:var(--brass); font-size:14px; font-weight:700;}
+.section-head h2{font-size:26px; font-weight:400; color:var(--moss-dark);}
+.section-desc{color:var(--slate); font-size:14.5px; margin:8px 0 28px; max-width:720px;}
+
+/* ---------- cards / grids ---------- */
+.grid-3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px;}
+.grid-2{display:grid; grid-template-columns:1.2fr .8fr; gap:22px;}
+@media(max-width:860px){.grid-3{grid-template-columns:1fr;} .grid-2{grid-template-columns:1fr;} .masthead-kpis{display:none;}}
+
+.card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:22px;}
+.stat-card{background:var(--panel); border:1px solid var(--line); border-left:4px solid var(--moss); border-radius:var(--radius); padding:20px 22px;}
+.stat-card .label{font-size:11px; text-transform:uppercase; letter-spacing:.09em; color:var(--slate); font-weight:700;}
+.stat-card .value{font-family:var(--mono); font-size:28px; margin-top:8px; color:var(--ink); font-weight:600;}
+.stat-card .note{font-size:12.5px; color:var(--slate); margin-top:6px;}
+
+/* ---------- tables ---------- */
+.table-tools{display:flex; gap:10px; align-items:center; margin-bottom:14px; flex-wrap:wrap;}
+.search-box{
+  flex:1; min-width:220px; padding:10px 14px; border:1px solid var(--line); border-radius:8px;
+  background:#fff; font-size:14px; font-family:inherit; color:var(--ink);
+}
+.search-box:focus{outline:2px solid var(--brass-light); border-color:var(--brass);}
+.pill-btn{
+  border:1px solid var(--line); background:#fff; padding:9px 14px; border-radius:8px; font-size:13px;
+  cursor:pointer; color:var(--slate); font-weight:600;
+}
+.pill-btn.active{background:var(--moss); color:#fff; border-color:var(--moss);}
+.count-tag{font-family:var(--mono); font-size:12.5px; color:var(--slate);}
+
+table{width:100%; border-collapse:collapse; font-size:14px; background:#fff;}
+.table-scroll{border:1px solid var(--line); border-radius:var(--radius); overflow:hidden;}
+.table-scroll-inner{max-height:520px; overflow-y:auto;}
+thead th{
+  position:sticky; top:0; background:var(--moss-dark); color:#f2ede0; text-align:left;
+  padding:11px 14px; font-size:11.5px; text-transform:uppercase; letter-spacing:.06em;
+  cursor:pointer; user-select:none; font-weight:700;
+}
+thead th span.arrow{opacity:.5; font-size:10px; margin-left:4px;}
+tbody td{padding:10px 14px; border-top:1px solid var(--line); vertical-align:top;}
+tbody tr:hover{background:#fbf7ee;}
+td.num, th.num{text-align:right; font-family:var(--mono);}
+.rank-badge{
+  display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px;
+  border-radius:50%; background:var(--brass-light); color:var(--moss-dark); font-family:var(--mono);
+  font-size:11px; font-weight:700; margin-right:8px;
+}
+.rank-badge.top{background:var(--brass); color:#fff;}
+.mini-bar-bg{background:#eee7d6; border-radius:4px; height:6px; width:90px; overflow:hidden; display:inline-block; vertical-align:middle; margin-left:8px;}
+.mini-bar-fill{background:var(--moss); height:100%;}
+
+/* ---------- product detail panel for agents ---------- */
+.agent-row-toggle{cursor:pointer;}
+.agent-row-toggle td:first-child{font-weight:600;}
+.agent-detail{display:none; background:#fbf9f3;}
+.agent-detail.open{display:table-row;}
+.agent-detail td{padding:0;}
+.detail-inner{padding:14px 20px 18px 46px;}
+.detail-inner table{background:transparent;}
+.detail-inner thead th{background:transparent; color:var(--slate); border-bottom:1px solid var(--line); position:static;}
+.detail-inner tbody td{border-top:1px dashed var(--line); padding:6px 14px;}
+.chev{display:inline-block; transition:transform .15s; margin-right:6px; color:var(--brass); font-size:11px;}
+.agent-row-toggle.expanded .chev{transform:rotate(90deg);}
+
+/* ---------- top lists / podium ---------- */
+.podium{display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:26px;}
+.podium-card{
+  border-radius:var(--radius); padding:20px; color:#fff; position:relative; overflow:hidden;
+}
+.podium-card .rank{font-family:var(--mono); font-size:12px; text-transform:uppercase; letter-spacing:.1em; opacity:.85;}
+.podium-card h4{font-size:17px; margin:10px 0 14px; font-weight:600; font-family:'Source Sans Pro',sans-serif; line-height:1.3;}
+.podium-card .metric{font-family:var(--mono); font-size:22px; font-weight:700;}
+.podium-card .metric-label{font-size:11px; opacity:.8; text-transform:uppercase; letter-spacing:.08em; margin-top:2px;}
+.podium-card.gold{background:linear-gradient(135deg,#c9922f,#a4712a);}
+.podium-card.silver{background:linear-gradient(135deg,#5c6b6a,#43504f);}
+.podium-card.bronze{background:linear-gradient(135deg,#8a5a3a,#6b4429);}
+
+.low-list{display:grid; grid-template-columns:repeat(3,1fr); gap:16px;}
+.low-card{border:1px dashed var(--bad); border-radius:var(--radius); padding:18px; background:#fdf3ef;}
+.low-card .rank{font-family:var(--mono); font-size:11px; color:var(--bad); text-transform:uppercase; letter-spacing:.08em;}
+.low-card h4{font-size:15px; margin:8px 0 10px; font-weight:600; font-family:'Source Sans Pro',sans-serif;}
+.low-card .metric{font-family:var(--mono); font-size:19px; color:var(--bad); font-weight:700;}
+
+/* charts (hand-rolled SVG, no external deps) */
+.chart-box{background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:22px;}
+.chart-box h3{font-size:15px; font-weight:600; color:var(--moss-dark); margin-bottom:18px; font-family:'Source Sans Pro',sans-serif;}
+.svg-chart{width:100%; height:auto; overflow:visible;}
+.bar-row{display:grid; grid-template-columns:150px 1fr 92px; align-items:center; gap:10px; margin-bottom:10px;}
+.bar-row .bar-label{font-size:12.5px; color:var(--ink); text-align:right; line-height:1.25; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.bar-row .bar-track{background:#eee7d6; border-radius:5px; height:16px; overflow:hidden; position:relative;}
+.bar-row .bar-fill{height:100%; border-radius:5px 0 0 5px; transition:width .4s ease;}
+.bar-row .bar-value{font-family:var(--mono); font-size:12px; color:var(--ink); text-align:right; font-weight:600;}
+.legend-wrap{display:flex; flex-wrap:wrap; gap:8px 16px; justify-content:center; margin-top:16px;}
+.legend-item{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--slate);}
+.legend-swatch{width:10px; height:10px; border-radius:2px; flex-shrink:0;}
+.donut-wrap{display:flex; align-items:center; gap:24px; flex-wrap:wrap; justify-content:center;}
+
+/* account cards for top performing accounts */
+.account-list{display:flex; flex-direction:column; gap:12px;}
+.account-card{
+  display:flex; align-items:center; gap:18px; border:1px solid var(--line); border-radius:var(--radius);
+  padding:16px 20px; background:#fff;
+}
+.account-card .acc-rank{
+  font-family:var(--mono); font-size:20px; font-weight:700; color:var(--brass); width:34px; flex-shrink:0; text-align:center;
+}
+.account-card .acc-name{font-weight:700; font-size:15px; color:var(--ink);}
+.account-card .acc-products{font-size:12.5px; color:var(--slate); margin-top:4px;}
+.account-card .acc-metrics{margin-left:auto; text-align:right; flex-shrink:0;}
+.account-card .acc-rev{font-family:var(--mono); font-size:17px; font-weight:700; color:var(--moss-dark);}
+.account-card .acc-units{font-size:11.5px; color:var(--slate); margin-top:2px;}
+.acc-bar-wrap{flex:1; max-width:220px;}
+.acc-bar-bg{background:#eee7d6; border-radius:5px; height:8px; overflow:hidden;}
+.acc-bar-fill{background:linear-gradient(90deg,var(--moss),var(--brass)); height:100%;}
+
+footer{padding:34px 0; text-align:center; color:var(--slate); font-size:12.5px;}
+footer .mark{font-family:var(--mono); color:var(--brass);}
+
+.badge-tag{display:inline-block; background:#eef2ea; color:var(--moss-dark); font-size:11px; padding:2px 8px; border-radius:10px; margin:2px 4px 0 0; font-family:var(--mono);}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="masthead-title">
+      <div class="eyebrow">Sales Performance · Field Report</div>
+      <h1>June 2026 <em>Agent Sales</em> Report</h1>
+      <div class="sub">A full accounting of every order booked through the agent channel — who sold what, which products carried the month, and where revenue concentrated.</div>
+    </div>
+    <div class="masthead-kpis">
+      <div class="mk"><div class="v" id="kpi-revenue">–</div><div class="l">Total Revenue</div></div>
+      <div class="mk"><div class="v" id="kpi-orders">–</div><div class="l">Orders</div></div>
+      <div class="mk"><div class="v" id="kpi-agents">–</div><div class="l">Active Agents</div></div>
+      <div class="mk"><div class="v" id="kpi-products">–</div><div class="l">Products</div></div>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#overview">Overview</a>
+    <a href="#agent-products">Agent × Product</a>
+    <a href="#product-perf">Product Performance</a>
+    <a href="#agent-revenue">Agent Revenue</a>
+    <a href="#best-sellers">Best Sellers</a>
+    <a href="#top-accounts">Top Accounts</a>
+    <a href="#movers">Movers &amp; Laggards</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+<section id="overview">
+  <div class="section-head"><span class="section-num">00</span><h2>Overview</h2></div>
+  <p class="section-desc">The headline numbers for the reporting period, drawn from every logged transaction in the source ledger.</p>
+  <div class="grid-3" id="overview-cards"></div>
+</section>
+
+<section id="agent-products">
+  <div class="section-head"><span class="section-num">01</span><h2>Agent-wise products sold</h2></div>
+  <p class="section-desc">Every agent, ranked by revenue. Click a row to expand the exact products they sold and how many units of each.</p>
+  <div class="table-tools">
+    <input class="search-box" id="agent-search" placeholder="Search agent name…">
+    <span class="count-tag" id="agent-count-tag"></span>
+  </div>
+  <div class="table-scroll"><div class="table-scroll-inner">
+    <table id="agent-table">
+      <thead>
+        <tr>
+          <th style="width:40%">Agent</th>
+          <th class="num" data-sort="productCount">Products <span class="arrow">↕</span></th>
+          <th class="num" data-sort="totalUnits">Units Sold <span class="arrow">↕</span></th>
+          <th class="num" data-sort="totalRevenue">Revenue <span class="arrow">↕</span></th>
+          <th class="num" data-sort="aov">Avg Order</th>
+        </tr>
+      </thead>
+      <tbody id="agent-tbody"></tbody>
+    </table>
+  </div></div>
+</section>
+
+<section id="product-perf">
+  <div class="section-head"><span class="section-num">02</span><h2>Product-wise performance</h2></div>
+  <p class="section-desc">Every product sold this period — units moved, revenue generated, average price, and how many distinct agents sell it.</p>
+  <div class="grid-2" style="margin-bottom:26px;">
+    <div class="chart-box">
+      <h3>Top 10 products by revenue</h3>
+      <div id="chartProductRevenue"></div>
+    </div>
+    <div class="chart-box">
+      <h3>Revenue share — top 6 products</h3>
+      <div id="chartProductShare"></div>
+    </div>
+  </div>
+  <div class="table-tools">
+    <input class="search-box" id="product-search" placeholder="Search product name…">
+    <span class="count-tag" id="product-count-tag"></span>
+  </div>
+  <div class="table-scroll"><div class="table-scroll-inner">
+    <table id="product-table">
+      <thead>
+        <tr>
+          <th style="width:42%">Product</th>
+          <th class="num" data-sort="units">Units Sold <span class="arrow">↕</span></th>
+          <th class="num" data-sort="revenue">Revenue <span class="arrow">↕</span></th>
+          <th class="num" data-sort="avgPrice">Avg Price <span class="arrow">↕</span></th>
+          <th class="num" data-sort="agents"># Agents <span class="arrow">↕</span></th>
+        </tr>
+      </thead>
+      <tbody id="product-tbody"></tbody>
+    </table>
+  </div></div>
+</section>
+
+<section id="agent-revenue">
+  <div class="section-head"><span class="section-num">03</span><h2>Total revenue by agent</h2></div>
+  <p class="section-desc">The same agent roster, viewed purely by revenue contribution — the top 15 accounts and how they compare.</p>
+  <div class="chart-box">
+    <h3>Top 15 agents by revenue</h3>
+    <div id="chartAgentRevenue"></div>
+  </div>
+</section>
+
+<section id="best-sellers">
+  <div class="section-head"><span class="section-num">04</span><h2>What sold the most</h2></div>
+  <p class="section-desc">The three products that moved the most units, and — separately — the three that generated the most revenue. A high-volume product isn't always the highest earner.</p>
+  <h3 style="font-family:'Source Sans Pro',sans-serif; font-size:14px; text-transform:uppercase; letter-spacing:.08em; color:var(--slate); margin:0 0 12px;">By units sold</h3>
+  <div class="podium" id="podium-units"></div>
+  <h3 style="font-family:'Source Sans Pro',sans-serif; font-size:14px; text-transform:uppercase; letter-spacing:.08em; color:var(--slate); margin:0 0 12px;">By revenue generated</h3>
+  <div class="podium" id="podium-revenue"></div>
+</section>
+
+<section id="top-accounts">
+  <div class="section-head"><span class="section-num">05</span><h2>Top-performing accounts</h2></div>
+  <p class="section-desc">The ten agent accounts contributing the most revenue this period, with the products they lean on most.</p>
+  <div class="account-list" id="account-list"></div>
+</section>
+
+<section id="movers">
+  <div class="section-head"><span class="section-num">06</span><h2>Movers &amp; laggards</h2></div>
+  <p class="section-desc">The three best-selling products and three least-selling products for the period, by units.</p>
+  <h3 style="font-family:'Source Sans Pro',sans-serif; font-size:14px; text-transform:uppercase; letter-spacing:.08em; color:var(--moss); margin:0 0 12px;">Top 3 — best movers</h3>
+  <div class="low-list" id="top3-list" style="margin-bottom:28px;"></div>
+  <h3 style="font-family:'Source Sans Pro',sans-serif; font-size:14px; text-transform:uppercase; letter-spacing:.08em; color:var(--bad); margin:0 0 12px;">Bottom 3 — least sold</h3>
+  <div class="low-list" id="least3-list"></div>
+</section>
+
+</div>
+
+<footer>
+  <div class="wrap"><span class="mark">§</span> Generated from the June 2026 agent sales ledger · 582 transactions · 136 agents · 72 products</div>
+</footer>
+
+<script>
+const DATA = {"summary": {"totalRevenue": 2426477.0, "totalOrders": 582, "totalAgents": 136, "totalProducts": 72, "aov": 4169.204467353952, "topByRevenue": [{"product": "French Basic to TEF - (64 Weeks)", "units": 25, "revenue": 687500.0}, {"product": "German Basic, A1 & A2 - (210 - Days)", "units": 21, "revenue": 201600.0}, {"product": "German Basic to B1 - (308 - Days)", "units": 12, "revenue": 180000.0}, {"product": "IELTS Academic - Champion (All Timings) (180 - Days)", "units": 14, "revenue": 71400.0}, {"product": "French B1, B2 & TEF - (224 - Days)", "units": 4, "revenue": 70800.0}, {"product": "French A2 - (90 Days)", "units": 8, "revenue": 62400.0}, {"product": "IELTS Academic - Self Prep (180 - Days)", "units": 41, "revenue": 61500.0}, {"product": "IELTS Academic - Champion (Evening) (180 - Days)", "units": 14, "revenue": 58800.0}, {"product": "French Basic, A1 & A2 - (All Timings) (224 - Days)", "units": 5, "revenue": 57000.0}, {"product": "IELTS Academic - Champion (Afternoon) (180 - Days)", "units": 12, "revenue": 50400.0}], "topByUnits": [{"product": "IELTS - Acad Achievers", "units": 75, "revenue": 45000.0}, {"product": "IELTS Academic - Self Prep (180 - Days) (Self Evaluated)", "units": 61, "revenue": 36600.0}, {"product": "IELTS Academic - Self Prep (180 - Days)", "units": 41, "revenue": 61500.0}, {"product": "IELTS Academic - FT+ (SP)", "units": 40, "revenue": 22000.0}, {"product": "French Basic to TEF - (64 Weeks)", "units": 25, "revenue": 687500.0}, {"product": "Regular - IELTS Academic (Mock Tests + Live Class) (W) (90 Days)", "units": 23, "revenue": 36547.0}, {"product": "German Basic, A1 & A2 - (210 - Days)", "units": 21, "revenue": 201600.0}, {"product": "IELTS Academic - Champion (All Timings) (180 - Days)", "units": 14, "revenue": 71400.0}, {"product": "PTE Academic - Champion (180 Days)", "units": 14, "revenue": 33600.0}, {"product": "IELTS General - Champion (180 - Days)", "units": 14, "revenue": 46200.0}], "top3Units": [{"product": "IELTS - Acad Achievers", "units": 75, "revenue": 45000.0}, {"product": "IELTS Academic - Self Prep (180 - Days) (Self Evaluated)", "units": 61, "revenue": 36600.0}, {"product": "IELTS Academic - Self Prep (180 - Days)", "units": 41, "revenue": 61500.0}], "least3Units": [{"product": "CAREER ESSENTIALS'", "units": 1, "revenue": 5000.0}, {"product": "IELTS General Champion (180 - Days)", "units": 1, "revenue": 3300.0}, {"product": "IELTS CHAMPION", "units": 1, "revenue": 3500.0}], "topAgentsByRevenue": [{"agent": "Brick Career Edu - Career Brick Consultants", "revenue": 263500.0, "units": 17, "productCount": 9, "topProducts": ["French Basic to TEF - (64 Weeks)", "French Basic & A1 - (Morning) (150 - Days)", "Digital SAT - Champion (180 Days)"]}, {"agent": "Careerline Education Foundation", "revenue": 146000.0, "units": 58, "productCount": 6, "topProducts": ["IELTS Academic - FT+ (SP)", "IELTS General FT (SP)", "German Basic, A1 & A2 - (210 - Days)"]}, {"agent": "Zofico", "revenue": 123300.0, "units": 10, "productCount": 7, "topProducts": ["French B1, B2 & TEF - (224 - Days)", "French Basic, A1 & A2(Night)", "French Basic to TEF - (64 Weeks)"]}, {"agent": "Kanan Vidyanagar", "revenue": 90650.0, "units": 26, "productCount": 11, "topProducts": ["IELTS Academic Self Prep (180 - Days) (Self Evaluated)", "Academic KYS Test - 1", "IELTS Academic Champion (All Timings) (180 - Days) (Self Evaluated)"]}, {"agent": "Kanan Bharuch", "revenue": 73200.0, "units": 80, "productCount": 5, "topProducts": ["IELTS - Acad Achievers", "IELTS Gen Achiever's", "IELTS Academic Champion (All Timings) (180 - Days)"]}, {"agent": "GROSQUARE", "revenue": 64600.0, "units": 3, "productCount": 2, "topProducts": ["French Basic to TEF - (64 Weeks)", "German Basic, A1 & A2 - (210 - Days)"]}, {"agent": "Vihaan Overseas Education", "revenue": 60100.0, "units": 3, "productCount": 2, "topProducts": ["French Basic to TEF - (64 Weeks)", "IELTS Academic - Champion (All Timings) (180 - Days)"]}, {"agent": "EDU PEARL IMMIGRATION SERVICES AND LANGUAGE POINT", "revenue": 57500.0, "units": 3, "productCount": 2, "topProducts": ["German Basic to B1 - (308 - Days)", "French Basic to TEF - (64 Weeks)"]}, {"agent": "Alzato Overseas Education", "revenue": 57000.0, "units": 11, "productCount": 4, "topProducts": ["IELTS Academic - Champion (Morning) (180 - Days)", "German Basic, A1 & A2 - (210 - Days)", "IELTS Academic - Champion (Afternoon) (180 - Days)"]}, {"agent": "Career Makers - KananPrep Ahmedabad", "revenue": 54900.0, "units": 21, "productCount": 9, "topProducts": ["IELTS Academic Self Prep (180 - Days)", "IELTS Academic Champion (Evening) (180 - Days)", "IELTS Academic Champion (Morning) (180 - Days)"]}]}, "agents": [{"agent": "Brick Career Edu - Career Brick Consultants", "rank": 1, "totalUnits": 17, "totalRevenue": 263500.0, "aov": 15500.0, "productCount": 9, "products": [{"product": "French Basic to TEF - (64 Weeks)", "units": 7, "revenue": 192500.0}, {"product": "French Basic & A1 - (Morning) (150 - Days)", "units": 3, "revenue": 18000.0}, {"product": "Digital SAT - Champion (180 Days)", "units": 1, "revenue": 10500.0}, {"product": "French B2 - (90 Days)", "units": 1, "revenue": 7800.0}, {"product": "French A2 - (90 Days)", "units": 1, "revenue": 7800.0}, {"product": "French Basic & A1 (Night)", "units": 1, "revenue": 8000.0}, {"product": "German Basic & A1 - (150 - Days)", "units": 1, "revenue": 6000.0}, {"product": "Shorter GRE - Champion (180 Days)", "units": 1, "revenue": 10500.0}, {"product": "Spoken English - Champion (180 Days)", "units": 1, "revenue": 2400.0}]}, {"agent": "Careerline Education Foundation", "rank": 2, "totalUnits": 58, "totalRevenue": 146000.0, "aov": 2517.2413793103447, "productCount": 6, "products": [{"product": "IELTS Academic - FT+ (SP)", "units": 40, "revenue": 22000.0}, {"product": "IELTS General FT (SP)", "units": 9, "revenue": 9000.0}, {"product": "German Basic, A1 & A2 - (210 - Days)", "units": 5, "revenue": 48000.0}, {"product": "French Basic to TEF - (64 Weeks)", "units": 2, "revenue": 55000.0}, {"product": "CELPIP - Champion (180 Days)", "units": 1, "revenue": 6000.0}, {"product": "German Basic & A1 - (150 - Days)", "units": 1, "revenue": 6000.0}]}, {"agent": "Zofico", "rank": 3, "totalUnits": 10, "totalRevenue": 123300.0, "aov": 12330.0, "productCount": 7, "products": [{"product": "French B1, B2 & TEF - (224 - Days)", "units": 3, "revenue": 53100.0}, {"product": "French Basic, A1 & A2(Night)", "units": 2, "revenue": 23200.0}, {"product": "French Basic to TEF - (64 Weeks)", "units": 1, "revenue": 27500.0}, {"product": "French Basic, A1 & A2 - (Evening) (224 - Days)", "units": 1, "revenue": 9600.0}, {"product": "IELTS Academic - Champion (Evening) (180 - Days)", "units": 1, "revenue": 4200.0}, {"product": "IELTS General - Champion (180 - Days)", "units": 1, "revenue": 3300.0}, {"product": "Spoken English - Champion (180 Days)", "units": 1, "revenue": 2400.0}]}, {"agent": "Kanan Vidyanagar", "rank": 4, "totalUnits": 26, "totalRevenue": 90650.0, "aov": 3486.5384615384614, "productCount": 11, "products": [{"product": "IELTS Academic Self Prep (180 - Days) (Self Evaluated)", "units": 9, "revenue": 5400.0}, {"product": "Academic KYS Test - 1", "units": 4, "revenue": 600.0}, {"product": "IELTS Academic Champion (All Timings) (180 - Days) (Self Evaluated)", "units": 3, "revenue": 12600.0}, {"product": "French Basic & A1 - (All Timings) (150 - Days)", "units": 2, "revenue": 15600.0}, {"product": "Academic KYS Test - 3", "units": 2, "revenue": 300.0}, {"product": "French A2 (90 Days)", "units": 1, "revenue": 7800.0}, {"product": "French Basic to TEF - (64 Weeks)", "units": 1, "revenue": 27500.0}, {"product": "German Basic & A1 (150 - Days)", "units": 1, "revenue": 6000.0}, {"product": "French Basic, A1 & A2 - (All Timings) (224 - Days)", "units": 1, "revenue": 11400.0}, {"product": "IELTS General Champion (180- Days) (Self Evaluated) [Limit- 38]", "units": 1, "revenue": 2400.0}, {"product": "Spoken English Champion (180 Days) (Self Evaluated)", "units": 1, "revenue": 1050.0}]}, {"agent": "Kanan Bharuch", "rank": 5, "totalUnits": 80, "totalRevenue": 73200.0, "aov": 915.0, "productCount": 5, "products": [{"product": "IELTS - Acad Achievers", "units": 69, "revenue": 41400.0}, {"product": "IELTS Gen Achiever's", "units": 7, "revenue": 4200.0}, {"product": "IELTS Academic Champion (All Timings) (180 - Days)", "units": 2, "revenue": 10200.0}, {"product": "French Basic & A1 - (All Timings) (150 - Days)", "units": 1, "revenue": 7800.0}, {"product": "German Basic, A1 & A2 (210 - Days)", "units": 1, "revenue": 9600.0}]}, {"agent": "GROSQUARE", "rank": 6, "totalUnits": 3, "totalRevenue": 64600.0, "aov": 21533.333333333332, "productCount": 2, "products": [{"product": "French Basic to TEF - (64 Weeks)", "units": 2, "revenue": 55000.0}, {"product": "German Basic, A1 & A2 - (210 - Days)", "units": 1, "revenue": 9600.0}]}, {"agent": "Vihaan Overseas Education", "rank": 7, "totalUnits": 3, "totalRevenue": 60100.0, "aov": 20033.333333333332, "productCount": 2, "products": [{"product": "French Basic to TEF - (64 Weeks)", "units": 2, "revenue": 55000.0}, {"product": "IELTS Academic - Champion (All Timings) (180 - Days)", "units": 1, "revenue": 5100.0}]}, {"agent": "EDU PEARL IMMIGRATION SERVICES AND LANGUAGE POINT", "rank": 8, "totalUnits": 3, "totalRevenue": 57500.0, "aov": 19166.666666666668, "productCount": 2, "products": [{"product": "German Basic to B1 - (308 - Days)", "units": 2, "revenue": 30000.0}, {"product": "French Basic to TEF - (64 Weeks)", "units": 1, "revenue": 27500.0}]}, {"agent": "Alzato Overseas Education", "rank": 9, "totalUnits": 11, "totalRevenue": 57000.0, "aov": 5181.818181818182, "productCount": 4, "products": [{"product": "IELTS Academic - Champion (Morning) (180 - Days)", "units": 5, "revenue": 21000.0}, {"product": "German Basic, A1 & A2 - (210 - Days)", "units": 2, "revenue": 19200.0}, {"product": "IELTS Academic - Champion (Afternoon) (180 - Days)", "units": 2, "revenue": 8400.0}, {"product": "IELTS Academic - Champion (Evening) (180 - Days)", "units": 2, "revenue": 8400.0}]}, {"agent": "Career Makers - KananPrep Ahmedabad", "rank": 10, "totalUnits": 21, "totalRevenue": 54900.0, "aov": 2614.285714285714, "productCount": 9, "products": [{"product": "IELTS Academic Self Prep (180 - Days)", "units": 11, "revenue": 16500.0}, {"product": "IELTS Academic Champion (Evening) (180 - Days)", "units": 3, "revenue": 12600.0}, {"product": "IELTS Academic Champion (Morning) (180 - Days)", "units": 1, "revenue": 4200.0}, {"product": "IELTS General Champion (180 - Days)", "units": 1, "revenue": 3300.0}, {"product": "IELTS General Self Prep (180 - Days)", "units": 1, "revenue": 1500.0}, {"product": "PTE Academic - Champion (180 Days)", "units": 1, "revenue": 2400.0}, {"product": "Shorter GRE Champion (180 Days)", "units": 1, "revenue": 10500.0}, {"product": "Spoken English Champion (180 Days)", "units": 1, "revenue": 2400.0}, {"product": "TOEFL iBT (Live Class) (180 Days)", "units": 1, "revenue": 1500.0}]}, {"agent": "VTN OVERSEAS & EDUCATION CONSULTANTS", "rank": 11, "totalUnits": 5, "totalRevenue": 53300.0, "aov": 10660.0, "productCount": 4, "products": [{"product": "French Basic & A1 - (Evening) (150 - Days)", "units": 2, "revenue": 12000.0}, {"product": "French Basic to TEF - (64 Weeks)", "units": 1, "revenue": 27500.0}, {"product": "French Basic, A1 & A2 - (Evening) (224 - Days)", "units": 1, "revenue": 9600.0}, {"product": "IELTS Academic - Champion (Evening) (180 - Days)", "units": 1, "revenue": 4200.0}]}, {"agent": "i20fever", "rank": 12, "totalUnits": 27, "totalRevenue": 50197.0, "aov": 1859.148148148148, "productCount": 4, "products": [{"product": "Regular - IELTS Academic (Mock Tests + Live Class) (W) (90 Days)", "units": 23, "revenue": 36547.0}, {"product": "Duolingo English Test - Champion (60 Days)", "units": 2, "revenue": 3000.0}, {"product": "German Basic, A1 & A2 - (210 - Days)", "units": 1, "revenue": 9600.0}, {"product": "PTE Academic - Live Class (90 Days)", "units": 1, "revenue": 1050.0}]}, {"agent": "Maple Immigrations", "rank": 13, "totalUnits": 3, "totalRevenue": 45000.0, "aov": 15000.0, "productCount": 1, "products": [{"product": "German Basic to B1 - (308 - Days)", "units": 3, "revenue": 45000.0}]}, {"agent": "Akash Immigrations & Career Consultants", "rank": 14, "totalUnits": 26, "totalRevenue": 41700.0, "aov": 1603.8461538461538, "productCount": 4, "products": [{"product": "IELTS Academic - Self Prep (180 - Days)", "units": 23, "revenue": 34500.0}, {"product": "IELTS General - Champion (180 - Days)", "units": 1, "revenue": 3300.0}, {"product": "IELTS General - Self Prep (180 - Days)", "units": 1, "revenue": 1500.0}, {"product": "Spoken English - Champion (180 Days)", "units": 1, "revenue": 2400.0}]}, {"agent": "Dotway", "rank": 15, "totalUnits": 2, "totalRevenue": 37100.0, "aov": 18550.0, "productCount": 2, "products": [{"product": "French Basic to TEF - (64 Weeks)", "units": 1, "revenue": 27500.0}, {"product": "French Basic, A1 & A2 - (Evening) (224 - Days)", "units": 1, "revenue": 9600.0}]}, {"agent": "Overseas Desire Immigration Pvt Ltd.", "rank": 16, "totalUnits": 3, "totalRevenue": 35900.0, "aov": 11966.666666666666, "productCount": 3, "products": [{"product": "French Basic to TEF - (64 Weeks)", "units": 1, "revenue": 27500.0}, {"product": "IELTS Academic - Champion (Afternoon) (180 - Days)", "units": 1, "revenue": 4200.0}, {"product": "IELTS Academic - Champion (Evening) (180 - Days)", "units": 1, "revenue": 4200.0}]}, {"agent": "5K Immigration Services Inc.", "rank": 17, "totalUnits": 2, "totalRevenue": 35300.0, "aov": 17650.0, "productCount": 2, "products": [{"product": "French A2 - (90 Days)", "units": 1, "revenue": 7800.0}, {"product": "French Basic to TEF - (64 Weeks)", "units": 1, "revenue": 27500.0}]}, {"agent": "GS GLOBAL", "rank": 18, "totalUnits": 3, "totalRevenue": 33300.0, "aov": 11100.0, "productCount": 3, "products": [{"product": "CELPIP - Champion (180 Days)", "units": 1, "revenue": 6000.0}, {"product": "French B1, B2 & TEF - (224 - Days)", "units": 1, "revenue": 17700.0}, {"product": "German Basic, A1 & A2 - (210 - Days)", "units": 1, "revenue": 9600.0}]}, {"agent": "Vision-Overseas", "rank": 19, "totalUnits": 3, "totalRevenue": 31400.0, "aov": 10466.666666666666, "productCount": 3, "products": [{"product": "French Basic to TEF - (64 Weeks)", "units": 1, "revenue": 27500.0}, {"product": "IELTS Academic - Self Prep (180 - Days)", "units": 1, "revenue": 1500.0}, {"product": "PTE Academic - Champion (180 Days)", "units": 1, "revenue": 2400.0}]}, {"agent": "Mind Maker Education and Consultancy Ser Pvt Ltd", "rank": 20, "totalUnits": 5, "totalRevenue": 30900.0, "aov": 6180.0, "productCount": 5, "products": [{"product": "French Basic & A1 - (All Timings) (150 - Days)", "units": 1, "revenue": 7800.0}, {"product": "French Basic & A1 - (Evening) (150 - Days)", "units": 1, "revenue": 6000.0}, {"product": "French Basic & A1 - (Morning) (150 - Days)", "units": 1, "revenue": 6000.0}, {"product": "German A2 - (90 Days)", "units": 1, "revenue": 7800.0}, {"product": "IELTS General - Champion (180 - Days)", "units": 1, "revenue": 3300.0}]}, {"agent": "Canada Wide Immigrations", "rank": 21, "totalUnits": 1, "totalRevenue": 27500.0, "aov": 27500.0, "productCount": 1, "products": [{"product": "French Basic to TEF - (64 Weeks)", "units": 1, "revenue": 27500.0}]}, {"agent": "Academic Yatra", "rank": 22, "totalUnits": 1, "totalRevenue": 27500.0, "aov": 27500.0, "productCount": 1, "products": [{"product": "French Basic to TEF - (64 Weeks)", "units": 1, "revenue": 27500.0}]}, {"agent": "UNIQUE VISA EXPERTS", "rank": 23, "totalUnits": 1, "totalRevenue": 27500.0, "aov": 27500.0, "productCount": 1, "products": [{"product": "Unspecified", "units": 1, "revenue": 27500.0}]}, {"agent": "Aris Overseas", "rank": 24, "totalUnits": 1, "totalRevenue": 27500.0, "aov": 27500.0, "productCount": 1, "products": [{"product": "French Basic to TEF - (64 Weeks)", "units": 1, "revenue": 27500.0}]}, {"agent": "IELTS EMBASSY", "rank": 25, "totalUnits": 1, "totalRevenue": 27500.0, "aov": 27500.0, "productCount": 1, "products": [{"product": "French Basic to TEF - (64 Weeks)", "units": 1, "revenue": 27500.0}]}, {"agent": "Academy of English and Foreign Languages (AEFL)", "rank": 26, "totalUnits": 5, "totalRevenue": 27300.0, "aov": 5460.0, "productCount": 2, "products": [{"product": "IELTS Academic - Champion (Afternoon) (180 - Days)", "units": 4, "revenue": 16800.0}, {"product": "Shorter GRE - Champion (180 Days)", "units": 1, "revenue": 10500.0}]}, {"agent": "Education Station Learning", "rank": 27, "totalUnits": 4, "totalRevenue": 25800.0, "aov": 6450.0, "productCount": 2, "products": [{"product": "French A2 - (90 Days)", "units": 3, "revenue": 23400.0}, {"product": "PTE Core - Champion(180 Days)", "units": 1, "revenue": 2400.0}]}, {"agent": "Gre Toppers", "rank": 28, "totalUnits": 12, "totalRevenue": 25200.0, "aov": 2100.0, "productCount": 5, "products": [{"product": "IELTS Academic - Self Prep (180 - Days) (Self Evaluated)", "units": 6, "revenue": 3600.0}, {"product": "Shorter GRE - Self Prep (180 Days)", "units": 3, "revenue": 18000.0}, {"product": "IELTS Academic - Self Prep (180 - Days)", "units": 1, "revenue": 1500.0}, {"product": "IELTS General - Self Prep (180 - Days) (Self Evaluated)", "units": 1, "revenue": 600.0}, {"product": "TOEFL - iBT - Live Class (180 Days)", "units": 1, "revenue": 1500.0}]}, {"agent": "PACIFIC EDUCATIONAL CONSULTANT", "rank": 29, "totalUnits": 3, "totalRevenue": 25200.0, "aov": 8400.0, "productCount": 3, "products": [{"product": "German A2 - (90 Days)", "units": 1, "revenue": 7800.0}, {"product": "German Basic to B1 - (308 - Days)", "units": 1, "revenue": 15000.0}, {"product": "PTE Core - Champion(180 Days)", "units": 1, "revenue": 2400.0}]}, {"agent": "Mission Career Education", "rank": 30, "totalUnits": 3, "totalRevenue": 25200.0, "aov": 8400.0, "productCount": 3, "products": [{"product": "GMAT - (90 Days)", "units": 1, "revenue": 10500.0}, {"product": "German Basic, A1 & A2 - (210 - Days)", "units": 1, "revenue": 9600.0}, {"product": "IELTS Academic - Champion (All Timings) (180 - Days)", "units": 1, "revenue": 5100.0}]}, {"agent": "CAREER ZONE NATHANA (CZN)", "rank": 31, "totalUnits": 2, "totalRevenue": 22800.0, "aov": 11400.0, "productCount": 1, "products": [{"product": "French Basic, A1 & A2 - (All Timings) (224 - Days)", "units": 2, "revenue": 22800.0}]}, {"agent": "Jain Overseas Services", "rank": 32, "totalUnits": 4, "totalRevenue": 22200.0, "aov": 5550.0, "productCount": 2, "products": [{"product": "Duolingo English Test - Champion (60 Days)", "units": 2, "revenue": 3000.0}, {"product": "French Basic, A1 & A2 - (Morning) (224 - Days)", "units": 2, "revenue": 19200.0}]}, {"agent": "Uniconnect Overseas Consultancy", "rank": 33, "totalUnits": 4, "totalRevenue": 22200.0, "aov": 5550.0, "productCount": 3, "products": [{"product": "IELTS Academic - Self Prep (180 - Days) (Self Evaluated)", "units": 2, "revenue": 1200.0}, {"product": "Digital SAT - Champion (180 Days)", "units": 1, "revenue": 10500.0}, {"product": "Shorter GRE - Champion (180 Days)", "units": 1, "revenue": 10500.0}]}, {"agent": "Wizdom International", "rank": 34, "totalUnits": 5, "totalRevenue": 21900.0, "aov": 4380.0, "productCount": 3, "products": [{"product": "IELTS Academic - Champion (All Timings) (180 - Days)", "units": 2, "revenue": 10200.0}, {"product": "IELTS Academic - Champion (Evening) (180 - Days)", "units": 2, "revenue": 8400.0}, {"product": "IELTS General - Champion (180 - Days)", "units": 1, "revenue": 3300.0}]}, {"agent": "Kanan Navsari", "rank": 35, "totalUnits": 3, "totalRevenue": 21600.0, "aov": 7200.0, "productCount": 2, "products": [{"product": "IELTS Academic - Champion (All Timings) (180 - Days)", "units": 2, "revenue": 10200.0}, {"product": "French Basic, A1 & A2 - (All Timings) (224 - Days)", "units": 1, "revenue": 11400.0}]}, {"agent": "Kavi Overseas", "rank": 36, "totalUnits": 2, "totalRevenue": 21000.0, "aov": 10500.0, "productCount": 2, "products": [{"product": "German Basic & A1 - (150 - Days)", "units": 1, "revenue": 6000.0}, {"product": "German Basic to B1 - (308 - Days)", "units": 1, "revenue": 15000.0}]}, {"agent": "IMS Venturi", "rank": 37, "totalUnits": 33, "totalRevenue": 19800.0, "aov": 600.0, "productCount": 1, "products": [{"product": "IELTS Academic - Self Prep (180 - Days) (Self Evaluated)", "units": 33, "revenue": 19800.0}]}, {"agent": "One Source Overseas", "rank": 38, "totalUnits": 2, "totalRevenue": 19200.0, "aov": 9600.0, "productCount": 2, "products": [{"product": "French Basic, A1 & A2 - (Evening) (224 - Days)", "units": 1, "revenue": 9600.0}, {"product": "German Basic, A1 & A2 - (210 - Days)", "units": 1, "revenue": 9600.0}]}, {"agent": "QBIX ACADEMIA", "rank": 39, "totalUnits": 2, "totalRevenue": 17400.0, "aov": 8700.0, "productCount": 2, "products": [{"product": "French Basic & A1 - (All Timings) (150 - Days)", "units": 1, "revenue": 7800.0}, {"product": "German Basic, A1 & A2 - (210 - Days)", "units": 1, "revenue": 9600.0}]}, {"agent": "Future Overseas Education", "rank": 40, "totalUnits": 2, "totalRevenue": 17400.0, "aov": 8700.0, "productCount": 2, "products": [{"product": "French Basic & A1 - (Evening) (150 - Days)", "units": 1, "revenue": 6000.0}, {"product": "French Basic, A1 & A2 - (All Timings) (224 - Days)", "units": 1, "revenue": 11400.0}]}, {"agent": "The Visa World", "rank": 41, "totalUnits": 2, "totalRevenue": 17400.0, "aov": 8700.0, "productCount": 2, "products": [{"product": "German Basic to B1 - (308 - Days)", "units": 1, "revenue": 15000.0}, {"product": "PTE Academic - Champion (180 Days)", "units": 1, "revenue": 2400.0}]}, {"agent": "Aliff Overseas Pvt Ltd", "rank": 42, "totalUnits": 7, "totalRevenue": 16200.0, "aov": 2314.285714285714, "productCount": 3, "products": [{"product": "IELTS ADVANCE CHAMPION", "units": 4, "revenue": 10200.0}, {"product": "IELTS SELFPREP CHAMPION", "units": 2, "revenue": 2500.0}, {"product": "IELTS CHAMPION", "units": 1, "revenue": 3500.0}]}, {"agent": "Taj Immigration Zira", "rank": 43, "totalUnits": 2, "totalRevenue": 15600.0, "aov": 7800.0, "productCount": 1, "products": [{"product": "French A2 - (90 Days)", "units": 2, "revenue": 15600.0}]}, {"agent": "The Empire Immigration", "rank": 44, "totalUnits": 1, "totalRevenue": 15000.0, "aov": 15000.0, "productCount": 1, "products": [{"product": "German Basic to B1 - (308 - Days)", "units": 1, "revenue": 15000.0}]}, {"agent": "DEEPTI CLASSES PVT LTD", "rank": 45, "totalUnits": 1, "totalRevenue": 15000.0, "aov": 15000.0, "productCount": 1, "products": [{"product": "German Basic to B1 - (308 - Days)", "units": 1, "revenue": 15000.0}]}, {"agent": "MIEC - O2 Education", "rank": 46, "totalUnits": 1, "totalRevenue": 15000.0, "aov": 15000.0, "productCount": 1, "products": [{"product": "German Basic to B1 - (308 - Days)", "units": 1, "revenue": 15000.0}]}, {"agent": "IGO", "rank": 47, "totalUnits": 1, "totalRevenue": 15000.0, "aov": 15000.0, "productCount": 1, "products": [{"product": "German Basic to B1 - (308 - Days)", "units": 1, "revenue": 15000.0}]}, {"agent": "SKY HEAVEN IMMIGRATION", "rank": 48, "totalUnits": 10, "totalRevenue": 15000.0, "aov": 1500.0, "productCount": 3, "products": [{"product": "IELTS Academic - Self Prep (180 - Days)", "units": 7, "revenue": 10500.0}, {"product": "PTE Academic - Self Prep (180 Days)", "units": 2, "revenue": 3000.0}, {"product": "Duolingo English Test - Champion (60 Days)", "units": 1, "revenue": 1500.0}]}, {"agent": "Eleevate Study Abroad Private Limited", "rank": 49, "totalUnits": 3, "totalRevenue": 14400.0, "aov": 4800.0, "productCount": 2, "products": [{"product": "IELTS Academic - Champion (All Timings) (180 - Days)", "units": 2, "revenue": 10200.0}, {"product": "IELTS Academic - Champion (Afternoon) (180 - Days)", "units": 1, "revenue": 4200.0}]}, {"agent": "KMINDZ", "rank": 50, "totalUnits": 15, "totalRevenue": 14400.0, "aov": 960.0, "productCount": 6, "products": [{"product": "IELTS Academic - Self Prep (180 - Days) (Self Evaluated)", "units": 7, "revenue": 4200.0}, {"product": "PTE Academic - Self Prep (180 Days) (Self Evaluated)", "units": 4, "revenue": 2400.0}, {"product": "Duolingo English Test - Champion (60 Days)", "units": 1, "revenue": 1500.0}, {"product": "IELTS General - Champion (180 - Days)", "units": 1, "revenue": 3300.0}, {"product": "IELTS General - Self Prep (180 - Days) (Self Evaluated)", "units": 1, "revenue": 600.0}, {"product": "Spoken English - Champion (180 Days)", "units": 1, "revenue": 2400.0}]}, {"agent": "Suria Training Academy", "rank": 51, "totalUnits": 2, "totalRevenue": 13800.0, "aov": 6900.0, "productCount": 2, "products": [{"product": "German Basic, A1 & A2 - (210 - Days)", "units": 1, "revenue": 9600.0}, {"product": "IELTS Academic - Champion (Evening) (180 - Days)", "units": 1, "revenue": 4200.0}]}, {"agent": "Kinngsway Overseas Education", "rank": 52, "totalUnits": 2, "totalRevenue": 12900.0, "aov": 6450.0, "productCount": 2, "products": [{"product": "German Basic, A1 & A2 - (210 - Days)", "units": 1, "revenue": 9600.0}, {"product": "IELTS General - Champion (180 - Days)", "units": 1, "revenue": 3300.0}]}, {"agent": "Marian Study Abroad Pvt Ltd", "rank": 53, "totalUnits": 3, "totalRevenue": 12600.0, "aov": 4200.0, "productCount": 2, "products": [{"product": "IELTS Academic - Champion (Morning) (180 - Days)", "units": 2, "revenue": 8400.0}, {"product": "IELTS Academic - Champion (Afternoon) (180 - Days)", "units": 1, "revenue": 4200.0}]}, {"agent": "MAGNUS IMMIGRATION PRIVATE LIMITED", "rank": 54, "totalUnits": 2, "totalRevenue": 12000.0, "aov": 6000.0, "productCount": 2, "products": [{"product": "French Basic, A1 & A2 - (Morning) (224 - Days)", "units": 1, "revenue": 9600.0}, {"product": "PTE Academic - Champion (180 Days)", "units": 1, "revenue": 2400.0}]}, {"agent": "Sic Global", "rank": 55, "totalUnits": 3, "totalRevenue": 11600.0, "aov": 3866.6666666666665, "productCount": 3, "products": [{"product": "CAREER ESSENTIALS'", "units": 1, "revenue": 5000.0}, {"product": "IELTS Academic - Champion (Evening) (180 - Days)", "units": 1, "revenue": 4200.0}, {"product": "PTE Academic - Champion (180 Days)", "units": 1, "revenue": 2400.0}]}, {"agent": "Skill Up Academy", "rank": 56, "totalUnits": 4, "totalRevenue": 11200.0, "aov": 2800.0, "productCount": 3, "products": [{"product": "Spoken English Study Plan", "units": 2, "revenue": 1000.0}, {"product": "French A2 - (90 Days)", "units": 1, "revenue": 7800.0}, {"product": "Spoken English - Champion (180 Days)", "units": 1, "revenue": 2400.0}]}, {"agent": "Edugo Abroad", "rank": 57, "totalUnits": 2, "totalRevenue": 11100.0, "aov": 5550.0, "productCount": 2, "products": [{"product": "French Basic & A1 - (Evening) (150 - Days)", "units": 1, "revenue": 6000.0}, {"product": "IELTS Academic - Champion (All Timings) (180 - Days)", "units": 1, "revenue": 5100.0}]}, {"agent": "JUST ABROAD", "rank": 58, "totalUnits": 2, "totalRevenue": 11100.0, "aov": 5550.0, "productCount": 2, "products": [{"product": "German Basic, A1 & A2 - (210 - Days)", "units": 1, "revenue": 9600.0}, {"product": "IELTS Academic - Self Prep (180 - Days)", "units": 1, "revenue": 1500.0}]}, {"agent": "CANGO CONSULTANTS", "rank": 59, "totalUnits": 2, "totalRevenue": 10200.0, "aov": 5100.0, "productCount": 2, "products": [{"product": "IELTS Academic - Champion (Evening) (180 - Days)", "units": 1, "revenue": 4200.0}, {"product": "Shorter GRE - Self Prep (180 Days)", "units": 1, "revenue": 6000.0}]}, {"agent": "AIM OVERSEAS", "rank": 60, "totalUnits": 3, "totalRevenue": 9900.0, "aov": 3300.0, "productCount": 2, "products": [{"product": "PTE Academic - Champion (180 Days)", "units": 2, "revenue": 4800.0}, {"product": "IELTS Academic - Champion (All Timings) (180 - Days)", "units": 1, "revenue": 5100.0}]}, {"agent": "Studylex", "rank": 61, "totalUnits": 1, "totalRevenue": 9600.0, "aov": 9600.0, "productCount": 1, "products": [{"product": "German Basic, A1 & A2 - (210 - Days)", "units": 1, "revenue": 9600.0}]}, {"agent": "DAGS IMMIGRATION & EDUCATION", "rank": 62, "totalUnits": 1, "totalRevenue": 9600.0, "aov": 9600.0, "productCount": 1, "products": [{"product": "German Basic, A1 & A2 - (210 - Days)", "units": 1, "revenue": 9600.0}]}, {"agent": "R. G. International", "rank": 63, "totalUnits": 1, "totalRevenue": 9600.0, "aov": 9600.0, "productCount": 1, "products": [{"product": "German Basic, A1 & A2 - (210 - Days)", "units": 1, "revenue": 9600.0}]}, {"agent": "Overseas Visa Services", "rank": 64, "totalUnits": 1, "totalRevenue": 9600.0, "aov": 9600.0, "productCount": 1, "products": [{"product": "French Basic, A1 & A2 - (Morning) (224 - Days)", "units": 1, "revenue": 9600.0}]}, {"agent": "Sheetal Gohil Language Academy & Consultancy", "rank": 65, "totalUnits": 1, "totalRevenue": 9600.0, "aov": 9600.0, "productCount": 1, "products": [{"product": "French Basic, A1 & A2 - (Morning) (224 - Days)", "units": 1, "revenue": 9600.0}]}, {"agent": "The English Zone", "rank": 66, "totalUnits": 1, "totalRevenue": 9600.0, "aov": 9600.0, "productCount": 1, "products": [{"product": "German Basic, A1 & A2 - (210 - Days)", "units": 1, "revenue": 9600.0}]}, {"agent": "Beyond Immigration Private Limited", "rank": 67, "totalUnits": 1, "totalRevenue": 9600.0, "aov": 9600.0, "productCount": 1, "products": [{"product": "German Basic, A1 & A2 - (210 - Days)", "units": 1, "revenue": 9600.0}]}, {"agent": "Expert immigration services Pvt ltd", "rank": 68, "totalUnits": 2, "totalRevenue": 8400.0, "aov": 4200.0, "productCount": 2, "products": [{"product": "German Basic & A1 - (150 - Days)", "units": 1, "revenue": 6000.0}, {"product": "PTE Academic - Champion (180 Days)", "units": 1, "revenue": 2400.0}]}, {"agent": "Kanan Karnal", "rank": 69, "totalUnits": 1, "totalRevenue": 7800.0, "aov": 7800.0, "productCount": 1, "products": [{"product": "French B1 (90 Days)", "units": 1, "revenue": 7800.0}]}, {"agent": "Lasya Infotech [Lasya IT Solutions Pvt Ltd]", "rank": 70, "totalUnits": 2, "totalRevenue": 6600.0, "aov": 3300.0, "productCount": 2, "products": [{"product": "IELTS Academic - Champion (Morning) (180 - Days)", "units": 1, "revenue": 4200.0}, {"product": "Unspecified", "units": 1, "revenue": 2400.0}]}, {"agent": "IAEC Consultants Pvt Ltd, Counsellor for Overseas Education", "rank": 71, "totalUnits": 2, "totalRevenue": 6600.0, "aov": 3300.0, "productCount": 2, "products": [{"product": "IELTS Academic - Champion (Evening) (180 - Days)", "units": 1, "revenue": 4200.0}, {"product": "PTE Academic - Champion (180 Days)", "units": 1, "revenue": 2400.0}]}, {"agent": "007 IELTS AND VISA CONSULTANCY", "rank": 72, "totalUnits": 1, "totalRevenue": 6000.0, "aov": 6000.0, "productCount": 1, "products": [{"product": "CELPIP - Champion (180 Days)", "units": 1, "revenue": 6000.0}]}, {"agent": "BRIGHTON EDUCATION & VISA CONSULTANT", "rank": 73, "totalUnits": 1, "totalRevenue": 6000.0, "aov": 6000.0, "productCount": 1, "products": [{"product": "French Basic & A1 - (Evening) (150 - Days)", "units": 1, "revenue": 6000.0}]}, {"agent": "Genesys Global", "rank": 74, "totalUnits": 1, "totalRevenue": 6000.0, "aov": 6000.0, "productCount": 1, "products": [{"product": "CELPIP - Champion (180 Days)", "units": 1, "revenue": 6000.0}]}, {"agent": "Bright-tech", "rank": 75, "totalUnits": 1, "totalRevenue": 6000.0, "aov": 6000.0, "productCount": 1, "products": [{"product": "French Basic & A1 - (Morning) (150 - Days)", "units": 1, "revenue": 6000.0}]}, {"agent": "Winny education", "rank": 76, "totalUnits": 1, "totalRevenue": 6000.0, "aov": 6000.0, "productCount": 1, "products": [{"product": "CELPIP - Champion (180 Days)", "units": 1, "revenue": 6000.0}]}, {"agent": "Ignify Educomp Immigrations", "rank": 77, "totalUnits": 1, "totalRevenue": 6000.0, "aov": 6000.0, "productCount": 1, "products": [{"product": "French Basic & A1 - (Evening) (150 - Days)", "units": 1, "revenue": 6000.0}]}, {"agent": "Kanan.co Nikol", "rank": 78, "totalUnits": 1, "totalRevenue": 6000.0, "aov": 6000.0, "productCount": 1, "products": [{"product": "German Basic & A1 (150 - Days)", "units": 1, "revenue": 6000.0}]}, {"agent": "The Educity", "rank": 79, "totalUnits": 2, "totalRevenue": 5700.0, "aov": 2850.0, "productCount": 2, "products": [{"product": "IELTS General - Champion (180 - Days)", "units": 1, "revenue": 3300.0}, {"product": "Spoken English - Champion (180 Days)", "units": 1, "revenue": 2400.0}]}, {"agent": "Glocal Opportunities", "rank": 80, "totalUnits": 2, "totalRevenue": 5700.0, "aov": 2850.0, "productCount": 2, "products": [{"product": "IELTS General - Champion (180 - Days)", "units": 1, "revenue": 3300.0}, {"product": "PTE Academic - Champion (180 Days)", "units": 1, "revenue": 2400.0}]}, {"agent": "Kanan Palanpur", "rank": 81, "totalUnits": 6, "totalRevenue": 5400.0, "aov": 900.0, "productCount": 2, "products": [{"product": "IELTS - Acad Achievers", "units": 5, "revenue": 3000.0}, {"product": "Spoken English Champion (180 Days)", "units": 1, "revenue": 2400.0}]}, {"agent": "Ecumenical Education and Migration Consultancy Pvt. Ltd.", "rank": 82, "totalUnits": 1, "totalRevenue": 5100.0, "aov": 5100.0, "productCount": 1, "products": [{"product": "IELTS Academic - Champion (All Timings) (180 - Days)", "units": 1, "revenue": 5100.0}]}, {"agent": "OHM Consultants", "rank": 83, "totalUnits": 1, "totalRevenue": 5100.0, "aov": 5100.0, "productCount": 1, "products": [{"product": "IELTS Academic - Champion (All Timings) (180 - Days)", "units": 1, "revenue": 5100.0}]}, {"agent": "Pineyards - AdmitKard", "rank": 84, "totalUnits": 1, "totalRevenue": 5100.0, "aov": 5100.0, "productCount": 1, "products": [{"product": "IELTS Academic - Champion (All Timings) (180 - Days)", "units": 1, "revenue": 5100.0}]}, {"agent": "Abroad Pathfinder Test Prep Academy", "rank": 85, "totalUnits": 1, "totalRevenue": 5100.0, "aov": 5100.0, "productCount": 1, "products": [{"product": "IELTS Academic - Champion (All Timings) (180 - Days)", "units": 1, "revenue": 5100.0}]}, {"agent": "Dreamora Immigration", "rank": 86, "totalUnits": 2, "totalRevenue": 4800.0, "aov": 2400.0, "productCount": 1, "products": [{"product": "PTE Academic - Champion (180 Days)", "units": 2, "revenue": 4800.0}]}, {"agent": "Kumar Marketing - IELTSNPTE.COM", "rank": 87, "totalUnits": 8, "totalRevenue": 4800.0, "aov": 600.0, "productCount": 2, "products": [{"product": "PTE Academic - Self Prep (180 Days) (Self Evaluated)", "units": 7, "revenue": 4200.0}, {"product": "IELTS Academic - Self Prep (180 - Days) (Self Evaluated)", "units": 1, "revenue": 600.0}]}, {"agent": "MASTER MIND INSTITUTE", "rank": 88, "totalUnits": 1, "totalRevenue": 4200.0, "aov": 4200.0, "productCount": 1, "products": [{"product": "IELTS Academic - Champion (Evening) (180 - Days)", "units": 1, "revenue": 4200.0}]}, {"agent": "Study Mitram International", "rank": 89, "totalUnits": 1, "totalRevenue": 4200.0, "aov": 4200.0, "productCount": 1, "products": [{"product": "IELTS Academic - Champion (Evening) (180 - Days)", "units": 1, "revenue": 4200.0}]}, {"agent": "Adiraa Overseas", "rank": 90, "totalUnits": 1, "totalRevenue": 4200.0, "aov": 4200.0, "productCount": 1, "products": [{"product": "IELTS Academic - Champion (Afternoon) (180 - Days)", "units": 1, "revenue": 4200.0}]}, {"agent": "ELVI Consultants", "rank": 91, "totalUnits": 1, "totalRevenue": 4200.0, "aov": 4200.0, "productCount": 1, "products": [{"product": "IELTS Academic - Champion (Evening) (180 - Days)", "units": 1, "revenue": 4200.0}]}, {"agent": "CIAV", "rank": 92, "totalUnits": 1, "totalRevenue": 4200.0, "aov": 4200.0, "productCount": 1, "products": [{"product": "IELTS Academic - Champion (Afternoon) (180 - Days)", "units": 1, "revenue": 4200.0}]}, {"agent": "Career Progression", "rank": 93, "totalUnits": 1, "totalRevenue": 4200.0, "aov": 4200.0, "productCount": 1, "products": [{"product": "IELTS Academic - Champion (Afternoon) (180 - Days)", "units": 1, "revenue": 4200.0}]}, {"agent": "Kanan Himatnagar", "rank": 94, "totalUnits": 3, "totalRevenue": 3600.0, "aov": 1200.0, "productCount": 2, "products": [{"product": "IELTS Academic Self Prep (180 - Days)", "units": 2, "revenue": 3000.0}, {"product": "IELTS - Acad Achievers", "units": 1, "revenue": 600.0}]}, {"agent": "Stunel", "rank": 95, "totalUnits": 6, "totalRevenue": 3600.0, "aov": 600.0, "productCount": 2, "products": [{"product": "IELTS Academic - Self Prep (180 - Days) (Self Evaluated)", "units": 5, "revenue": 3000.0}, {"product": "IELTS General - Self Prep (180 - Days) (Self Evaluated)", "units": 1, "revenue": 600.0}]}, {"agent": "7plusband", "rank": 96, "totalUnits": 6, "totalRevenue": 3600.0, "aov": 600.0, "productCount": 3, "products": [{"product": "IELTS Academic - Self Prep (180 - Days) (Self Evaluated)", "units": 4, "revenue": 2400.0}, {"product": "IELTS General - Self Prep (180 - Days) (Self Evaluated)", "units": 1, "revenue": 600.0}, {"product": "Unspecified", "units": 1, "revenue": 600.0}]}, {"agent": "Dollar Dreams", "rank": 97, "totalUnits": 3, "totalRevenue": 3600.0, "aov": 1200.0, "productCount": 2, "products": [{"product": "IELTS Academic - Self Prep (180 - Days) (Self Evaluated)", "units": 2, "revenue": 1200.0}, {"product": "IELTS General - Champion (180 - Days) (Self Evaluated)", "units": 1, "revenue": 2400.0}]}, {"agent": "VRINDA INTERNATIONAL", "rank": 98, "totalUnits": 1, "totalRevenue": 3300.0, "aov": 3300.0, "productCount": 1, "products": [{"product": "IELTS General - Champion (180 - Days)", "units": 1, "revenue": 3300.0}]}, {"agent": "BO CONSULTANTS", "rank": 99, "totalUnits": 1, "totalRevenue": 3300.0, "aov": 3300.0, "productCount": 1, "products": [{"product": "IELTS General - Champion (180 - Days)", "units": 1, "revenue": 3300.0}]}, {"agent": "SPECTRUM OVERSEAS", "rank": 100, "totalUnits": 1, "totalRevenue": 3300.0, "aov": 3300.0, "productCount": 1, "products": [{"product": "IELTS General - Champion (180 - Days)", "units": 1, "revenue": 3300.0}]}, {"agent": "EACC", "rank": 101, "totalUnits": 1, "totalRevenue": 3300.0, "aov": 3300.0, "productCount": 1, "products": [{"product": "IELTS General - Champion (180 - Days)", "units": 1, "revenue": 3300.0}]}, {"agent": "Immigrace English Academy", "rank": 102, "totalUnits": 1, "totalRevenue": 3300.0, "aov": 3300.0, "productCount": 1, "products": [{"product": "IELTS General - Champion (180 - Days)", "units": 1, "revenue": 3300.0}]}, {"agent": "MegaVersity", "rank": 103, "totalUnits": 1, "totalRevenue": 3300.0, "aov": 3300.0, "productCount": 1, "products": [{"product": "IELTS General - Champion (180 - Days)", "units": 1, "revenue": 3300.0}]}, {"agent": "Dr Haz Consultants Private Limited", "rank": 104, "totalUnits": 2, "totalRevenue": 3000.0, "aov": 1500.0, "productCount": 1, "products": [{"product": "IELTS Academic - Self Prep (180 - Days)", "units": 2, "revenue": 3000.0}]}, {"agent": "Kanan Surat", "rank": 105, "totalUnits": 1, "totalRevenue": 2500.0, "aov": 2500.0, "productCount": 1, "products": [{"product": "Unspecified", "units": 1, "revenue": 2500.0}]}, {"agent": "Countrywide Immigration and Travels", "rank": 106, "totalUnits": 1, "totalRevenue": 2400.0, "aov": 2400.0, "productCount": 1, "products": [{"product": "Spoken English - Champion (180 Days)", "units": 1, "revenue": 2400.0}]}, {"agent": "Inspire Education", "rank": 107, "totalUnits": 1, "totalRevenue": 2400.0, "aov": 2400.0, "productCount": 1, "products": [{"product": "Spoken English - Champion (180 Days)", "units": 1, "revenue": 2400.0}]}, {"agent": "Disha Education Consultancy", "rank": 108, "totalUnits": 1, "totalRevenue": 2400.0, "aov": 2400.0, "productCount": 1, "products": [{"product": "PTE Academic - Champion (180 Days)", "units": 1, "revenue": 2400.0}]}, {"agent": "MyEducation", "rank": 109, "totalUnits": 1, "totalRevenue": 2400.0, "aov": 2400.0, "productCount": 1, "products": [{"product": "Spoken English - Champion (180 Days)", "units": 1, "revenue": 2400.0}]}, {"agent": "British Academy", "rank": 110, "totalUnits": 1, "totalRevenue": 2400.0, "aov": 2400.0, "productCount": 1, "products": [{"product": "PTE Academic - Champion (180 Days)", "units": 1, "revenue": 2400.0}]}, {"agent": "Admit Hub Global", "rank": 111, "totalUnits": 1, "totalRevenue": 2400.0, "aov": 2400.0, "productCount": 1, "products": [{"product": "Spoken English - Champion (180 Days)", "units": 1, "revenue": 2400.0}]}, {"agent": "Maxmorgan Consultants", "rank": 112, "totalUnits": 1, "totalRevenue": 2400.0, "aov": 2400.0, "productCount": 1, "products": [{"product": "Spoken English - Champion (180 Days)", "units": 1, "revenue": 2400.0}]}, {"agent": "UNLOCK THE WORLD", "rank": 113, "totalUnits": 2, "totalRevenue": 2100.0, "aov": 1050.0, "productCount": 2, "products": [{"product": "IELTS Academic - Self Prep (180 - Days) (Self Evaluated)", "units": 1, "revenue": 600.0}, {"product": "PTE Academic - Self Prep (180 Days)", "units": 1, "revenue": 1500.0}]}, {"agent": "Inspire Management Training Centre", "rank": 114, "totalUnits": 1, "totalRevenue": 2000.0, "aov": 2000.0, "productCount": 1, "products": [{"product": "Unspecified", "units": 1, "revenue": 2000.0}]}, {"agent": "Gateway-International", "rank": 115, "totalUnits": 2, "totalRevenue": 1830.0, "aov": 915.0, "productCount": 2, "products": [{"product": "Duolingo English Test - Champion (60 Days) (Self Evaluated)", "units": 1, "revenue": 330.0}, {"product": "TOEFL - iBT - Live Class (180 Days)", "units": 1, "revenue": 1500.0}]}, {"agent": "AVP IMMIGRATION SERVICES", "rank": 116, "totalUnits": 1, "totalRevenue": 1500.0, "aov": 1500.0, "productCount": 1, "products": [{"product": "IELTS Academic - Self Prep (180 - Days)", "units": 1, "revenue": 1500.0}]}, {"agent": "Abroad Gateway", "rank": 117, "totalUnits": 1, "totalRevenue": 1500.0, "aov": 1500.0, "productCount": 1, "products": [{"product": "IELTS Academic - Self Prep (180 - Days)", "units": 1, "revenue": 1500.0}]}, {"agent": "Aakash Bhardwaj - Skies International Pvt. Ltd.", "rank": 118, "totalUnits": 1, "totalRevenue": 1500.0, "aov": 1500.0, "productCount": 1, "products": [{"product": "PTE Academic - Self Prep (180 Days)", "units": 1, "revenue": 1500.0}]}, {"agent": "BSBW Career Builders", "rank": 119, "totalUnits": 1, "totalRevenue": 1500.0, "aov": 1500.0, "productCount": 1, "products": [{"product": "Duolingo English Test - Champion (60 Days)", "units": 1, "revenue": 1500.0}]}, {"agent": "AiCademy", "rank": 120, "totalUnits": 1, "totalRevenue": 1500.0, "aov": 1500.0, "productCount": 1, "products": [{"product": "PTE Core - Champion (180 Days) (Self Evaluated)", "units": 1, "revenue": 1500.0}]}, {"agent": "Valmiki Group", "rank": 121, "totalUnits": 1, "totalRevenue": 1500.0, "aov": 1500.0, "productCount": 1, "products": [{"product": "IELTS Academic - Self Prep (180 - Days)", "units": 1, "revenue": 1500.0}]}, {"agent": "Kalptaru International", "rank": 122, "totalUnits": 1, "totalRevenue": 1500.0, "aov": 1500.0, "productCount": 1, "products": [{"product": "IELTS Academic - Self Prep (180 - Days)", "units": 1, "revenue": 1500.0}]}, {"agent": "JE overseas", "rank": 123, "totalUnits": 1, "totalRevenue": 1500.0, "aov": 1500.0, "productCount": 1, "products": [{"product": "IELTS Academic - Self Prep (180 - Days)", "units": 1, "revenue": 1500.0}]}, {"agent": "Fortune Abroad Consultants", "rank": 124, "totalUnits": 1, "totalRevenue": 1500.0, "aov": 1500.0, "productCount": 1, "products": [{"product": "Duolingo English Test - Champion (60 Days)", "units": 1, "revenue": 1500.0}]}, {"agent": "English with Pia", "rank": 125, "totalUnits": 1, "totalRevenue": 1500.0, "aov": 1500.0, "productCount": 1, "products": [{"product": "IELTS Academic - Self Prep (180 - Days)", "units": 1, "revenue": 1500.0}]}, {"agent": "Eduland Immigration", "rank": 126, "totalUnits": 1, "totalRevenue": 1500.0, "aov": 1500.0, "productCount": 1, "products": [{"product": "Duolingo English Test - Champion (60 Days)", "units": 1, "revenue": 1500.0}]}, {"agent": "Samayra Overseas", "rank": 127, "totalUnits": 1, "totalRevenue": 1500.0, "aov": 1500.0, "productCount": 1, "products": [{"product": "PTE Academic - Self Prep (180 Days)", "units": 1, "revenue": 1500.0}]}, {"agent": "Milestone Overseas", "rank": 128, "totalUnits": 1, "totalRevenue": 1500.0, "aov": 1500.0, "productCount": 1, "products": [{"product": "Duolingo English Test - Champion (60 Days)", "units": 1, "revenue": 1500.0}]}, {"agent": "SKYLINE IMMIGRATION E-LEARNING", "rank": 129, "totalUnits": 1, "totalRevenue": 1500.0, "aov": 1500.0, "productCount": 1, "products": [{"product": "Duolingo English Test - Champion (60 Days)", "units": 1, "revenue": 1500.0}]}, {"agent": "SSA Migration", "rank": 130, "totalUnits": 1, "totalRevenue": 1500.0, "aov": 1500.0, "productCount": 1, "products": [{"product": "PTE Academic - Self Prep (180 Days)", "units": 1, "revenue": 1500.0}]}, {"agent": "Kanan Rajkot", "rank": 131, "totalUnits": 2, "totalRevenue": 1200.0, "aov": 600.0, "productCount": 1, "products": [{"product": "IELTS Academic Self Prep (180 - Days) (Self Evaluated)", "units": 2, "revenue": 1200.0}]}, {"agent": "Hanvika Edu Consultancy", "rank": 132, "totalUnits": 1, "totalRevenue": 1050.0, "aov": 1050.0, "productCount": 1, "products": [{"product": "Spoken English - Champion (180 Days) (Self Evaluated)", "units": 1, "revenue": 1050.0}]}, {"agent": "Quest Immigration Education Consultant LLP", "rank": 133, "totalUnits": 1, "totalRevenue": 1050.0, "aov": 1050.0, "productCount": 1, "products": [{"product": "PTE Academic - Live Class (90 Days)", "units": 1, "revenue": 1050.0}]}, {"agent": "Monarch Visa Advisors", "rank": 134, "totalUnits": 1, "totalRevenue": 600.0, "aov": 600.0, "productCount": 1, "products": [{"product": "IELTS General - Self Prep (180 - Days) (Self Evaluated)", "units": 1, "revenue": 600.0}]}, {"agent": "Unique Academy for English", "rank": 135, "totalUnits": 1, "totalRevenue": 600.0, "aov": 600.0, "productCount": 1, "products": [{"product": "PTE Academic - Self Prep (180 Days) (Self Evaluated)", "units": 1, "revenue": 600.0}]}, {"agent": "Linguistic Study Center", "rank": 136, "totalUnits": 1, "totalRevenue": 500.0, "aov": 500.0, "productCount": 1, "products": [{"product": "Spoken English Study Plan", "units": 1, "revenue": 500.0}]}], "products": [{"product": "French Basic to TEF - (64 Weeks)", "units": 25, "revenue": 687500.0, "avgPrice": 27500.0, "agents": 16}, {"product": "German Basic, A1 & A2 - (210 - Days)", "units": 21, "revenue": 201600.0, "avgPrice": 9600.0, "agents": 16}, {"product": "German Basic to B1 - (308 - Days)", "units": 12, "revenue": 180000.0, "avgPrice": 15000.0, "agents": 9}, {"product": "IELTS Academic - Champion (All Timings) (180 - Days)", "units": 14, "revenue": 71400.0, "avgPrice": 5100.0, "agents": 11}, {"product": "French B1, B2 & TEF - (224 - Days)", "units": 4, "revenue": 70800.0, "avgPrice": 17700.0, "agents": 2}, {"product": "French A2 - (90 Days)", "units": 8, "revenue": 62400.0, "avgPrice": 7800.0, "agents": 5}, {"product": "IELTS Academic - Self Prep (180 - Days)", "units": 41, "revenue": 61500.0, "avgPrice": 1500.0, "agents": 12}, {"product": "IELTS Academic - Champion (Evening) (180 - Days)", "units": 14, "revenue": 58800.0, "avgPrice": 4200.0, "agents": 12}, {"product": "French Basic, A1 & A2 - (All Timings) (224 - Days)", "units": 5, "revenue": 57000.0, "avgPrice": 11400.0, "agents": 4}, {"product": "IELTS Academic - Champion (Afternoon) (180 - Days)", "units": 12, "revenue": 50400.0, "avgPrice": 4200.0, "agents": 8}, {"product": "French Basic, A1 & A2 - (Morning) (224 - Days)", "units": 5, "revenue": 48000.0, "avgPrice": 9600.0, "agents": 4}, {"product": "IELTS General - Champion (180 - Days)", "units": 14, "revenue": 46200.0, "avgPrice": 3300.0, "agents": 14}, {"product": "IELTS - Acad Achievers", "units": 75, "revenue": 45000.0, "avgPrice": 600.0, "agents": 3}, {"product": "French Basic & A1 - (Evening) (150 - Days)", "units": 7, "revenue": 42000.0, "avgPrice": 6000.0, "agents": 6}, {"product": "French Basic & A1 - (All Timings) (150 - Days)", "units": 5, "revenue": 39000.0, "avgPrice": 7800.0, "agents": 4}, {"product": "French Basic, A1 & A2 - (Evening) (224 - Days)", "units": 4, "revenue": 38400.0, "avgPrice": 9600.0, "agents": 4}, {"product": "IELTS Academic - Self Prep (180 - Days) (Self Evaluated)", "units": 61, "revenue": 36600.0, "avgPrice": 600.0, "agents": 9}, {"product": "Regular - IELTS Academic (Mock Tests + Live Class) (W) (90 Days)", "units": 23, "revenue": 36547.0, "avgPrice": 1589.0, "agents": 1}, {"product": "Unspecified", "units": 5, "revenue": 35000.0, "avgPrice": 7000.0, "agents": 5}, {"product": "IELTS Academic - Champion (Morning) (180 - Days)", "units": 8, "revenue": 33600.0, "avgPrice": 4200.0, "agents": 3}, {"product": "PTE Academic - Champion (180 Days)", "units": 14, "revenue": 33600.0, "avgPrice": 2400.0, "agents": 12}, {"product": "Shorter GRE - Champion (180 Days)", "units": 3, "revenue": 31500.0, "avgPrice": 10500.0, "agents": 3}, {"product": "French Basic & A1 - (Morning) (150 - Days)", "units": 5, "revenue": 30000.0, "avgPrice": 6000.0, "agents": 3}, {"product": "CELPIP - Champion (180 Days)", "units": 5, "revenue": 30000.0, "avgPrice": 6000.0, "agents": 5}, {"product": "Spoken English - Champion (180 Days)", "units": 11, "revenue": 26400.0, "avgPrice": 2400.0, "agents": 11}, {"product": "German Basic & A1 - (150 - Days)", "units": 4, "revenue": 24000.0, "avgPrice": 6000.0, "agents": 4}, {"product": "Shorter GRE - Self Prep (180 Days)", "units": 4, "revenue": 24000.0, "avgPrice": 6000.0, "agents": 2}, {"product": "French Basic, A1 & A2(Night)", "units": 2, "revenue": 23200.0, "avgPrice": 11600.0, "agents": 1}, {"product": "IELTS Academic - FT+ (SP)", "units": 40, "revenue": 22000.0, "avgPrice": 550.0, "agents": 1}, {"product": "Digital SAT - Champion (180 Days)", "units": 2, "revenue": 21000.0, "avgPrice": 10500.0, "agents": 2}, {"product": "IELTS Academic Self Prep (180 - Days)", "units": 13, "revenue": 19500.0, "avgPrice": 1500.0, "agents": 2}, {"product": "Duolingo English Test - Champion (60 Days)", "units": 11, "revenue": 16500.0, "avgPrice": 1500.0, "agents": 9}, {"product": "German A2 - (90 Days)", "units": 2, "revenue": 15600.0, "avgPrice": 7800.0, "agents": 2}, {"product": "IELTS Academic Champion (Evening) (180 - Days)", "units": 3, "revenue": 12600.0, "avgPrice": 4200.0, "agents": 1}, {"product": "IELTS Academic Champion (All Timings) (180 - Days) (Self Evaluated)", "units": 3, "revenue": 12600.0, "avgPrice": 4200.0, "agents": 1}, {"product": "German Basic & A1 (150 - Days)", "units": 2, "revenue": 12000.0, "avgPrice": 6000.0, "agents": 2}, {"product": "GMAT - (90 Days)", "units": 1, "revenue": 10500.0, "avgPrice": 10500.0, "agents": 1}, {"product": "Shorter GRE Champion (180 Days)", "units": 1, "revenue": 10500.0, "avgPrice": 10500.0, "agents": 1}, {"product": "IELTS ADVANCE CHAMPION", "units": 4, "revenue": 10200.0, "avgPrice": 2550.0, "agents": 1}, {"product": "IELTS Academic Champion (All Timings) (180 - Days)", "units": 2, "revenue": 10200.0, "avgPrice": 5100.0, "agents": 1}, {"product": "German Basic, A1 & A2 (210 - Days)", "units": 1, "revenue": 9600.0, "avgPrice": 9600.0, "agents": 1}, {"product": "IELTS General FT (SP)", "units": 9, "revenue": 9000.0, "avgPrice": 1000.0, "agents": 1}, {"product": "PTE Academic - Self Prep (180 Days)", "units": 6, "revenue": 9000.0, "avgPrice": 1500.0, "agents": 5}, {"product": "French Basic & A1 (Night)", "units": 1, "revenue": 8000.0, "avgPrice": 8000.0, "agents": 1}, {"product": "French A2 (90 Days)", "units": 1, "revenue": 7800.0, "avgPrice": 7800.0, "agents": 1}, {"product": "French B2 - (90 Days)", "units": 1, "revenue": 7800.0, "avgPrice": 7800.0, "agents": 1}, {"product": "French B1 (90 Days)", "units": 1, "revenue": 7800.0, "avgPrice": 7800.0, "agents": 1}, {"product": "PTE Academic - Self Prep (180 Days) (Self Evaluated)", "units": 12, "revenue": 7200.0, "avgPrice": 600.0, "agents": 3}, {"product": "IELTS Academic Self Prep (180 - Days) (Self Evaluated)", "units": 11, "revenue": 6600.0, "avgPrice": 600.0, "agents": 2}, {"product": "CAREER ESSENTIALS'", "units": 1, "revenue": 5000.0, "avgPrice": 5000.0, "agents": 1}, {"product": "PTE Core - Champion(180 Days)", "units": 2, "revenue": 4800.0, "avgPrice": 2400.0, "agents": 2}, {"product": "Spoken English Champion (180 Days)", "units": 2, "revenue": 4800.0, "avgPrice": 2400.0, "agents": 2}, {"product": "IELTS Gen Achiever's", "units": 7, "revenue": 4200.0, "avgPrice": 600.0, "agents": 1}, {"product": "IELTS Academic Champion (Morning) (180 - Days)", "units": 1, "revenue": 4200.0, "avgPrice": 4200.0, "agents": 1}, {"product": "IELTS CHAMPION", "units": 1, "revenue": 3500.0, "avgPrice": 3500.0, "agents": 1}, {"product": "IELTS General Champion (180 - Days)", "units": 1, "revenue": 3300.0, "avgPrice": 3300.0, "agents": 1}, {"product": "IELTS General - Self Prep (180 - Days) (Self Evaluated)", "units": 5, "revenue": 3000.0, "avgPrice": 600.0, "agents": 5}, {"product": "TOEFL - iBT - Live Class (180 Days)", "units": 2, "revenue": 3000.0, "avgPrice": 1500.0, "agents": 2}, {"product": "IELTS SELFPREP CHAMPION", "units": 2, "revenue": 2500.0, "avgPrice": 1250.0, "agents": 1}, {"product": "IELTS General - Champion (180 - Days) (Self Evaluated)", "units": 1, "revenue": 2400.0, "avgPrice": 2400.0, "agents": 1}, {"product": "IELTS General Champion (180- Days) (Self Evaluated) [Limit- 38]", "units": 1, "revenue": 2400.0, "avgPrice": 2400.0, "agents": 1}, {"product": "PTE Academic - Live Class (90 Days)", "units": 2, "revenue": 2100.0, "avgPrice": 1050.0, "agents": 2}, {"product": "IELTS General Self Prep (180 - Days)", "units": 1, "revenue": 1500.0, "avgPrice": 1500.0, "agents": 1}, {"product": "IELTS General - Self Prep (180 - Days)", "units": 1, "revenue": 1500.0, "avgPrice": 1500.0, "agents": 1}, {"product": "Spoken English Study Plan", "units": 3, "revenue": 1500.0, "avgPrice": 500.0, "agents": 2}, {"product": "TOEFL iBT (Live Class) (180 Days)", "units": 1, "revenue": 1500.0, "avgPrice": 1500.0, "agents": 1}, {"product": "PTE Core - Champion (180 Days) (Self Evaluated)", "units": 1, "revenue": 1500.0, "avgPrice": 1500.0, "agents": 1}, {"product": "Spoken English Champion (180 Days) (Self Evaluated)", "units": 1, "revenue": 1050.0, "avgPrice": 1050.0, "agents": 1}, {"product": "Spoken English - Champion (180 Days) (Self Evaluated)", "units": 1, "revenue": 1050.0, "avgPrice": 1050.0, "agents": 1}, {"product": "Academic KYS Test - 1", "units": 4, "revenue": 600.0, "avgPrice": 150.0, "agents": 1}, {"product": "Duolingo English Test - Champion (60 Days) (Self Evaluated)", "units": 1, "revenue": 330.0, "avgPrice": 330.0, "agents": 1}, {"product": "Academic KYS Test - 3", "units": 2, "revenue": 300.0, "avgPrice": 150.0, "agents": 1}]};
+
+const fmtINR = n => '₹' + Math.round(n).toLocaleString('en-IN');
+const fmtNum = n => Number(n).toLocaleString('en-IN');
+
+// ---------- Overview ----------
+document.getElementById('kpi-revenue').textContent = fmtINR(DATA.summary.totalRevenue);
+document.getElementById('kpi-orders').textContent = fmtNum(DATA.summary.totalOrders);
+document.getElementById('kpi-agents').textContent = fmtNum(DATA.summary.totalAgents);
+document.getElementById('kpi-products').textContent = fmtNum(DATA.summary.totalProducts);
+
+const overviewCards = [
+  {label:'Total Revenue', value: fmtINR(DATA.summary.totalRevenue), note:'Across all agent-sourced orders this period'},
+  {label:'Total Orders', value: fmtNum(DATA.summary.totalOrders), note: fmtNum(DATA.summary.totalAgents)+' agents, '+fmtNum(DATA.summary.totalProducts)+' distinct products'},
+  {label:'Average Order Value', value: fmtINR(DATA.summary.aov), note:'Revenue ÷ total orders'},
+];
+document.getElementById('overview-cards').innerHTML = overviewCards.map(c => `
+  <div class="stat-card">
+    <div class="label">${c.label}</div>
+    <div class="value">${c.value}</div>
+    <div class="note">${c.note}</div>
+  </div>`).join('');
+
+// ---------- Section 1: Agent x Product table ----------
+let agentSort = {key:'totalRevenue', dir:-1};
+function renderAgentTable(filter=''){
+  const tbody = document.getElementById('agent-tbody');
+  let rows = DATA.agents.filter(a => a.agent.toLowerCase().includes(filter.toLowerCase()));
+  rows.sort((a,b) => (a[agentSort.key] - b[agentSort.key]) * agentSort.dir);
+  document.getElementById('agent-count-tag').textContent = rows.length + ' of ' + DATA.agents.length + ' agents';
+  const maxRev = Math.max(...DATA.agents.map(a=>a.totalRevenue));
+  tbody.innerHTML = rows.map((a,i) => {
+    const barPct = Math.max(4, Math.round(a.totalRevenue/maxRev*100));
+    const detailRows = a.products.map(p => `
+      <tr><td>${p.product}</td><td class="num">${fmtNum(p.units)}</td><td class="num">${fmtINR(p.revenue)}</td></tr>
+    `).join('');
+    return `
+    <tr class="agent-row-toggle" data-idx="${i}">
+      <td><span class="chev">▸</span>${a.agent}</td>
+      <td class="num">${a.productCount}</td>
+      <td class="num">${fmtNum(a.totalUnits)}</td>
+      <td class="num">${fmtINR(a.totalRevenue)}<span class="mini-bar-bg"><span class="mini-bar-fill" style="width:${barPct}%"></span></span></td>
+      <td class="num">${fmtINR(a.aov)}</td>
+    </tr>
+    <tr class="agent-detail" data-detail="${i}">
+      <td colspan="5"><div class="detail-inner">
+        <table>
+          <thead><tr><th>Product</th><th class="num">Units</th><th class="num">Revenue</th></tr></thead>
+          <tbody>${detailRows}</tbody>
+        </table>
+      </div></td>
+    </tr>`;
+  }).join('');
+
+  tbody.querySelectorAll('.agent-row-toggle').forEach(row => {
+    row.addEventListener('click', () => {
+      row.classList.toggle('expanded');
+      tbody.querySelector(`.agent-detail[data-detail="${row.dataset.idx}"]`).classList.toggle('open');
+    });
+  });
+}
+renderAgentTable();
+document.getElementById('agent-search').addEventListener('input', e => renderAgentTable(e.target.value));
+document.querySelectorAll('#agent-table thead th[data-sort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const key = th.dataset.sort;
+    agentSort.dir = (agentSort.key === key) ? -agentSort.dir : -1;
+    agentSort.key = key;
+    renderAgentTable(document.getElementById('agent-search').value);
+  });
+});
+
+// ---------- Section 2: Product table ----------
+let productSort = {key:'revenue', dir:-1};
+function renderProductTable(filter=''){
+  const tbody = document.getElementById('product-tbody');
+  let rows = DATA.products.filter(p => p.product.toLowerCase().includes(filter.toLowerCase()));
+  rows.sort((a,b) => (a[productSort.key] - b[productSort.key]) * productSort.dir);
+  document.getElementById('product-count-tag').textContent = rows.length + ' of ' + DATA.products.length + ' products';
+  const maxRev = Math.max(...DATA.products.map(p=>p.revenue));
+  tbody.innerHTML = rows.map(p => {
+    const barPct = Math.max(4, Math.round(p.revenue/maxRev*100));
+    return `<tr>
+      <td>${p.product}</td>
+      <td class="num">${fmtNum(p.units)}</td>
+      <td class="num">${fmtINR(p.revenue)}<span class="mini-bar-bg"><span class="mini-bar-fill" style="width:${barPct}%"></span></span></td>
+      <td class="num">${fmtINR(p.avgPrice)}</td>
+      <td class="num">${p.agents}</td>
+    </tr>`;
+  }).join('');
+}
+renderProductTable();
+document.getElementById('product-search').addEventListener('input', e => renderProductTable(e.target.value));
+document.querySelectorAll('#product-table thead th[data-sort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const key = th.dataset.sort;
+    productSort.dir = (productSort.key === key) ? -productSort.dir : -1;
+    productSort.key = key;
+    renderProductTable(document.getElementById('product-search').value);
+  });
+});
+
+// ---------- Charts (pure SVG / HTML — no external library, always renders) ----------
+
+// Horizontal bar chart built from simple div rows (robust, no SVG measuring needed)
+function renderHBarChart(containerId, items, {labelKey, valueKey, color, fmt, truncate=28}){
+  const el = document.getElementById(containerId);
+  const max = Math.max(...items.map(it => it[valueKey]));
+  el.innerHTML = items.map(it => {
+    const label = it[labelKey].length > truncate ? it[labelKey].slice(0, truncate-1)+'…' : it[labelKey];
+    const pct = max > 0 ? Math.max(2, Math.round(it[valueKey]/max*100)) : 0;
+    return `<div class="bar-row" title="${it[labelKey].replace(/"/g,'&quot;')}">
+      <div class="bar-label">${label}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%; background:${color};"></div></div>
+      <div class="bar-value">${fmt(it[valueKey])}</div>
+    </div>`;
+  }).join('');
+}
+
+renderHBarChart('chartProductRevenue', DATA.summary.topByRevenue, {
+  labelKey:'product', valueKey:'revenue', color:'#2f5d50', fmt: fmtINR
+});
+
+renderHBarChart('chartAgentRevenue', DATA.summary.topAgentsByRevenue, {
+  labelKey:'agent', valueKey:'revenue', color:'#b8863b', fmt: fmtINR, truncate:32
+});
+
+// Donut chart via SVG conic-style ring built from stroke-dasharray segments
+function renderDonutChart(containerId, items, colors){
+  const el = document.getElementById(containerId);
+  const total = items.reduce((s,it) => s + it.value, 0);
+  const R = 70, C = 2*Math.PI*R, CX=90, CY=90;
+  let offset = 0;
+  const segments = items.map((it,i) => {
+    const frac = total > 0 ? it.value/total : 0;
+    const dash = frac * C;
+    const seg = `<circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="${colors[i % colors.length]}"
+      stroke-width="26" stroke-dasharray="${dash} ${C-dash}" stroke-dashoffset="${-offset}"
+      transform="rotate(-90 ${CX} ${CY})"><title>${it.label}: ${fmtINR(it.value)} (${(frac*100).toFixed(1)}%)</title></circle>`;
+    offset += dash;
+    return seg;
+  }).join('');
+  const legend = items.map((it,i) => `
+    <div class="legend-item"><span class="legend-swatch" style="background:${colors[i % colors.length]}"></span>
+      ${it.label} — ${(total>0 ? (it.value/total*100).toFixed(1) : 0)}%</div>`).join('');
+  el.innerHTML = `
+    <div class="donut-wrap">
+      <svg class="svg-chart" viewBox="0 0 180 180" width="220" height="220">${segments}</svg>
+    </div>
+    <div class="legend-wrap">${legend}</div>`;
+}
+
+const shareTop = DATA.products.slice(0,6);
+const shareOther = DATA.products.slice(6).reduce((s,p)=>s+p.revenue,0);
+const donutItems = [
+  ...shareTop.map(p => ({label: p.product.length>26 ? p.product.slice(0,24)+'…' : p.product, value: p.revenue})),
+  {label:'All other products', value: shareOther}
+];
+renderDonutChart('chartProductShare', donutItems,
+  ['#2f5d50','#b8863b','#a4472f','#5c6b6a','#7fa693','#d9b46a','#cfc7b3']);
+
+// ---------- Section 4: Best sellers podium ----------
+function podiumHTML(items, metricKey, metricLabel, fmt){
+  const classes = ['gold','silver','bronze'];
+  const ranks = ['1st','2nd','3rd'];
+  return items.slice(0,3).map((it,i) => `
+    <div class="podium-card ${classes[i]}">
+      <div class="rank">${ranks[i]} place</div>
+      <h4>${it.product}</h4>
+      <div class="metric">${fmt(it[metricKey])}</div>
+      <div class="metric-label">${metricLabel}</div>
+    </div>`).join('');
+}
+document.getElementById('podium-units').innerHTML = podiumHTML(DATA.summary.topByUnits, 'units', 'units sold', fmtNum);
+document.getElementById('podium-revenue').innerHTML = podiumHTML(DATA.summary.topByRevenue, 'revenue', 'revenue generated', fmtINR);
+
+// ---------- Section 5: Top accounts ----------
+const maxAccRev = Math.max(...DATA.summary.topAgentsByRevenue.map(a=>a.revenue));
+document.getElementById('account-list').innerHTML = DATA.summary.topAgentsByRevenue.map((a,i) => `
+  <div class="account-card">
+    <div class="acc-rank">${i+1}</div>
+    <div style="flex:1; min-width:0;">
+      <div class="acc-name">${a.agent}</div>
+      <div class="acc-products">${a.productCount} product${a.productCount>1?'s':''} purchased — top: ${a.topProducts.map(p=>`<span class="badge-tag">${p}</span>`).join('')}</div>
+      <div class="acc-bar-wrap" style="margin-top:8px;"><div class="acc-bar-bg"><div class="acc-bar-fill" style="width:${Math.round(a.revenue/maxAccRev*100)}%"></div></div></div>
+    </div>
+    <div class="acc-metrics">
+      <div class="acc-rev">${fmtINR(a.revenue)}</div>
+      <div class="acc-units">${fmtNum(a.units)} units</div>
+    </div>
+  </div>`).join('');
+
+// ---------- Section 6: Movers & laggards ----------
+document.getElementById('top3-list').innerHTML = DATA.summary.top3Units.map((p,i) => `
+  <div class="low-card" style="border-color:var(--good); background:#f1f8f3;">
+    <div class="rank" style="color:var(--good);">Rank ${i+1}</div>
+    <h4>${p.product}</h4>
+    <div class="metric" style="color:var(--good);">${fmtNum(p.units)} units</div>
+    <div style="font-size:12.5px; color:var(--slate); margin-top:4px;">${fmtINR(p.revenue)} revenue</div>
+  </div>`).join('');
+
+document.getElementById('least3-list').innerHTML = DATA.summary.least3Units.map((p,i) => `
+  <div class="low-card">
+    <div class="rank">Rank ${i+1}</div>
+    <h4>${p.product}</h4>
+    <div class="metric">${fmtNum(p.units)} unit${p.units>1?'s':''}</div>
+    <div style="font-size:12.5px; color:var(--slate); margin-top:4px;">${fmtINR(p.revenue)} revenue</div>
+  </div>`).join('');
+</script>
+</body>
+</html>
